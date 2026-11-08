@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  RECEPCIONISTA
+  ENTRENADOR
+  CLIENTE
+}
+
+enum MembershipStatus {
+  ACTIVA
+  SUSPENDIDA
+  VENCIDA
+}
+
+model User {
+  id             Int        @id @default(autoincrement())
+  name           String
+  email          String     @unique
+  passwordHash   String
+  role           Role
+  active         Boolean    @default(true)
+  failedAttempts Int        @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime   @default(now())
+  client         Client?    @relation("ClientUser")
+  trainees       Client[]   @relation("Trainer")
+  routines       Routine[]
+  classes        GymClass[]
+  audits         AuditLog[]
+}
+
+model Client {
+  id          Int          @id @default(autoincrement())
+  name        String
+  document    String       @unique
+  phone       String?
+  email       String?
+  userId      Int?         @unique
+  user        User?        @relation("ClientUser", fields: [userId], references: [id])
+  trainerId   Int?
+  trainer     User?        @relation("Trainer", fields: [trainerId], references: [id])
+  createdAt   DateTime     @default(now())
+  memberships Membership[]
+  accessLogs  AccessLog[]
+  routines    Routine[]
+  bookings    Booking[]
+}
+
+model Plan {
+  id           Int          @id @default(autoincrement())
+  name         String       @unique
+  durationDays Int
+  price        Int
+  conditions   String?
+  memberships  Membership[]
+}
+
+model Membership {
+  id        Int              @id @default(autoincrement())
+  clientId  Int
+  client    Client           @relation(fields: [clientId], references: [id])
+  planId    Int
+  plan      Plan             @relation(fields: [planId], references: [id])
+  startDate DateTime
+  endDate   DateTime
+  status    MembershipStatus @default(ACTIVA)
+}
+
+model AccessLog {
+  id        Int      @id @default(autoincrement())
+  clientId  Int?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  document  String
+  granted   Boolean
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model Routine {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  client      Client   @relation(fields: [clientId], references: [id])
+  trainerId   Int
+  trainer     User     @relation(fields: [trainerId], references: [id])
+  title       String
+  description String
+  updatedAt   DateTime @updatedAt
+}
+
+model GymClass {
+  id        Int       @id @default(autoincrement())
+  name      String
+  trainerId Int
+  trainer   User      @relation(fields: [trainerId], references: [id])
+  weekday   String
+  startTime String
+  capacity  Int
+  bookings  Booking[]
+}
+
+model Booking {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id])
+  classId   Int
+  gymClass  GymClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([clientId, classId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  detail    String
+  createdAt DateTime @default(now())
+}
