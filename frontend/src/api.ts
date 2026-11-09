@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || '/api';
+const BASE = 'https://gimnasios-jsa.onrender.com/api';
 
 export type Role = 'ADMIN' | 'RECEPCIONISTA' | 'ENTRENADOR' | 'CLIENTE';
 export interface Me { id: number; name: string; role: Role; clientId: number | null }
